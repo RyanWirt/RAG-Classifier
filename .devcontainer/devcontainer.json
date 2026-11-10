@@ -1,0 +1,21 @@
+{
+  "name": "RAG-Classifier",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "forwardPorts": [4000],
+  "portsAttributes": {
+    "4000": { "label": "LiteLLM proxy" }
+  },
+  "postCreateCommand": "python -m venv .venv && .venv/bin/pip install -r requirements.txt && ([ -f .env ] || cp .devcontainer/.env.litellm .env)",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": false
+      },
+      "extensions": ["ms-python.python"]
+    }
+  }
+}

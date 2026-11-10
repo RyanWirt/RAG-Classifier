@@ -24,6 +24,16 @@ tests/
   test_workflow.py
 ```
 
+## Dev container with LiteLLM
+
+`.devcontainer/` starts the app plus a LiteLLM proxy (port 4000) that serves the
+`chat-model` and `embedding-model` aliases defined in
+`.devcontainer/litellm_config.yaml`. The app reaches it through
+`OPENAI_BASE_URL=http://litellm:4000/v1`, set in the generated `.env`. Edit the
+config to point at any backend; export `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` on
+the host if the upstream needs them. Changing the embedding model requires
+`python -m app reindex`.
+
 ## Setup
 
 Python 3.10 or later is required. Install dependencies and configure the

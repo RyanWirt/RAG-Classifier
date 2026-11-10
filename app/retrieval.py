@@ -38,9 +38,18 @@ class GuidanceRetriever:
 
 
 def create_embeddings(settings: Settings) -> Any:
+    import os
+
     from langchain_openai import OpenAIEmbeddings
 
-    return OpenAIEmbeddings(model=settings.embedding_model)
+    # OpenAI-compatible proxies (e.g. LiteLLM) expect raw text, not token IDs.
+    custom_endpoint = bool(
+        os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE")
+    )
+    return OpenAIEmbeddings(
+        model=settings.embedding_model,
+        check_embedding_ctx_length=not custom_endpoint,
+    )
 
 
 def open_vector_store(settings: Settings) -> Any:
