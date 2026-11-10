@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
 from typing import Any
 
@@ -15,6 +16,32 @@ from app.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+MAX_EVIDENCE_ITEMS = 20
+MAX_EVIDENCE_CHARS = 500
+
+
+class InvalidToolResult(Exception):
+    pass
+
+
+def _sanitize_result(result: Any) -> tuple[dict[str, str], bool]:
+    """Keep only bounded str-to-str entries; tool output is untrusted prompt input."""
+    if not isinstance(result, dict):
+        raise InvalidToolResult
+    cleaned: dict[str, str] = {}
+    truncated = False
+    for key, value in result.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            truncated = True
+            continue
+        if len(cleaned) == MAX_EVIDENCE_ITEMS:
+            truncated = True
+            break
+        if len(key) > MAX_EVIDENCE_CHARS or len(value) > MAX_EVIDENCE_CHARS:
+            truncated = True
+        cleaned[key[:MAX_EVIDENCE_CHARS]] = value[:MAX_EVIDENCE_CHARS]
+    return cleaned, truncated
 
 
 class ClassifierManager:
@@ -36,27 +63,24 @@ class ClassifierManager:
         evidence = []
         for tool in self.mcp_tools:
             executor = ThreadPoolExecutor(max_workers=1)
+            started = time.perf_counter()
+            entry: dict[str, Any] = {"tool": tool.name}
             future: Future[dict[str, str]] = executor.submit(tool.call, text)
             try:
-                result = future.result(timeout=self.tool_timeout_seconds)
-                evidence.append(
-                    {"tool": tool.name, "status": "ok", "result": result}
+                result, truncated = _sanitize_result(
+                    future.result(timeout=self.tool_timeout_seconds)
                 )
+                entry["status"] = "ok" if result else "no_match"
+                entry["result"] = result
+                if truncated:
+                    entry["truncated"] = True
                 logger.info("MCP tool completed", extra={"tool_name": tool.name})
             except TimeoutError:
                 future.cancel()
-                evidence.append(
-                    {"tool": tool.name, "status": "error", "error": "timeout"}
-                )
+                entry.update(status="error", error="timeout")
                 logger.warning("MCP tool timed out", extra={"tool_name": tool.name})
             except Exception as error:
-                evidence.append(
-                    {
-                        "tool": tool.name,
-                        "status": "error",
-                        "error": type(error).__name__,
-                    }
-                )
+                entry.update(status="error", error=type(error).__name__)
                 logger.warning(
                     "MCP tool failed",
                     extra={
@@ -66,6 +90,8 @@ class ClassifierManager:
                 )
             finally:
                 executor.shutdown(wait=False, cancel_futures=True)
+            entry["latency_ms"] = round((time.perf_counter() - started) * 1000)
+            evidence.append(entry)
         return evidence
 
     def classify(self, input_text: str) -> ClassificationResult:

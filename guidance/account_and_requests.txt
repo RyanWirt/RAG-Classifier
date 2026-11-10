@@ -1,0 +1,15 @@
+# Additional classification labels
+
+Use the following labels for customer-support reports about accounts and
+product suggestions.
+
+## Account Access
+
+Choose Account Access when the text concerns logging in, resetting a password,
+a locked or suspended account, multi-factor authentication, or permission to
+use an account or its features.
+
+## Feature Request
+
+Choose Feature Request when the text suggests a new capability or an
+improvement to existing behavior and does not report that something is broken.

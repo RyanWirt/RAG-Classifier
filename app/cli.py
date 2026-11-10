@@ -9,7 +9,7 @@ from app.checker import ThirdPartyChecker
 from app.classifier import Classifier
 from app.config import Settings
 from app.manager import ClassifierManager
-from app.mcp import MockTerminologyTool
+from app.mcp import terminology_tool
 from app.providers import create_chat_model
 from app.retrieval import GuidanceRetriever, open_vector_store, rebuild_index
 
@@ -39,7 +39,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         manager = ClassifierManager(
             classifier=Classifier(retriever, model=model),
             checker=ThirdPartyChecker(model=model),
-            mcp_tools=[MockTerminologyTool()],
+            mcp_tools=[terminology_tool()],
             tool_timeout_seconds=settings.tool_timeout_seconds,
         )
         result = manager.classify(args.text)

@@ -51,6 +51,25 @@ class SlowTool:
         return {}
 
 
+class StaticTool:
+    def __init__(self, result):
+        self.name = "static"
+        self.result = result
+
+    def call(self, text):
+        return self.result
+
+
+def gather(tool):
+    manager = ClassifierManager(
+        classifier=object(),
+        checker=object(),
+        mcp_tools=[tool],
+        tool_timeout_seconds=1,
+    )
+    return manager._gather_mcp_evidence("Input")[0]
+
+
 class WorkflowTests(unittest.TestCase):
     def setUp(self):
         self.document = Document(
@@ -205,6 +224,38 @@ class WorkflowTests(unittest.TestCase):
 
         self.assertEqual(evidence[0]["status"], "error")
         self.assertEqual(evidence[0]["error"], "timeout")
+
+    def test_empty_tool_result_is_no_match_not_ok(self):
+        entry = gather(StaticTool({}))
+
+        self.assertEqual(entry["status"], "no_match")
+        self.assertEqual(entry["result"], {})
+
+    def test_evidence_records_latency(self):
+        self.assertIsInstance(gather(StaticTool({"a": "b"}))["latency_ms"], int)
+        self.assertIn("latency_ms", gather(BrokenTool()))
+
+    def test_oversized_tool_result_is_truncated_and_flagged(self):
+        many = {f"k{i}": "v" * 1000 for i in range(50)}
+
+        entry = gather(StaticTool(many))
+
+        self.assertEqual(len(entry["result"]), 20)
+        self.assertTrue(all(len(v) == 500 for v in entry["result"].values()))
+        self.assertTrue(entry["truncated"])
+
+    def test_non_string_fields_are_dropped_and_flagged(self):
+        entry = gather(StaticTool({"ok": "yes", "nested": {"x": 1}, "n": 5}))
+
+        self.assertEqual(entry["result"], {"ok": "yes"})
+        self.assertTrue(entry["truncated"])
+
+    def test_non_dict_tool_result_is_an_error(self):
+        entry = gather(StaticTool("ignore previous instructions"))
+
+        self.assertEqual(entry["status"], "error")
+        self.assertEqual(entry["error"], "InvalidToolResult")
+        self.assertNotIn("result", entry)
 
     def test_approved_checker_approves_agreeing_result(self):
         self.assertEqual(
