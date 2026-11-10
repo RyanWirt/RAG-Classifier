@@ -1,0 +1,23 @@
+# Classification labels
+
+Use the following labels for customer-support reports.
+
+## Billing
+
+Choose Billing when the text concerns a charge, invoice, refund, or payment that
+was processed incorrectly or needs review.
+
+## Service Issue
+
+Choose Service Issue when a product feature is unavailable, failing, or
+performing incorrectly.
+
+## General Inquiry
+
+Choose General Inquiry when the text asks for information and does not report a
+billing or service problem.
+
+## Insufficient information
+
+Choose UNDETERMINED if the report does not contain enough information to apply
+one of the labels above, or if the report supports conflicting labels.
