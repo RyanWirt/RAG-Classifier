@@ -1,0 +1,18 @@
+# Model aliases exposed by the LiteLLM proxy. The app refers to these names via
+# CHAT_MODEL and EMBEDDING_MODEL. Edit `litellm_params` to point at any backend
+# (see https://docs.litellm.ai/docs/providers), e.g. for Ollama:
+#   model: ollama/llama3.1
+#   api_base: http://host.docker.internal:11434
+model_list:
+  - model_name: chat-model
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: embedding-model
+    litellm_params:
+      model: openai/text-embedding-3-small
+      api_key: os.environ/OPENAI_API_KEY
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
