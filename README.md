@@ -17,7 +17,9 @@ app/
   mcp_server.py    Local terminology MCP server (stdio)
   models.py        Pydantic request/response schemas
   pdf_to_text.py   Offline PDF-to-.txt converter (OCR, header/footer removal)
-  retrieval.py     Chroma persistence and retrieval
+  embeddings.py    Embedding model and Chroma client setup
+  ingest.py        Vectorizer: guidance text -> Chroma (run separately)
+  retrieval.py     Read-only Chroma retrieval for the classifier
   cli.py           Reindex and classify commands
 guidance/
   classifications.txt
@@ -35,7 +37,7 @@ tests/
 `.devcontainer/.env.litellm` to `.env` on first create. The template points the
 app at the hosted LiteLLM proxy (`OPENAI_BASE_URL`) and trusts its private CA via
 `SSL_CERT_FILE=certs/nnl-ca.pem`. Set `OPENAI_API_KEY` in `.env` afterward.
-Changing the embedding model requires `python -m app reindex`.
+Changing the embedding model requires `python -m app.ingest`.
 
 ## Setup
 
@@ -61,12 +63,12 @@ Set `LLM_PROVIDER=openai` or `LLM_PROVIDER=anthropic` and choose a compatible
 Markdown headings, numbered headings, and short all-caps headings. Set chunking,
 retrieval, model, and vector-store parameters in `.env`. The Chroma index is
 stored locally in `VECTOR_STORE_DIR` (default `.vector_store/`, git-ignored).
-`reindex` re-embeds every `.txt` file in `GUIDANCE_DIR` and replaces the whole
+`app.ingest` re-embeds every `.txt` file in `GUIDANCE_DIR` and replaces the whole
 index, so rerun it after adding or editing guidance or changing
 `EMBEDDING_MODEL`:
 
 ```bash
-python -m app reindex
+python -m app.ingest
 python -m app classify --text "I was charged twice for my order."
 ```
 
@@ -131,7 +133,7 @@ and page numbers. Its dependencies are separate from the classifier's:
 ```bash
 pip install -r requirements-ingest.txt
 python -m app.pdf_to_text path/to/file.pdf path/to/folder -o guidance
-python -m app reindex
+python -m app.ingest
 ```
 
 - A line is treated as a header or footer when it sits in the top or bottom 3

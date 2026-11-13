@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from langchain_core.documents import Document
 
 from app.config import Settings
-from app.guidance import load_guidance
 
 
 @dataclass(frozen=True)
@@ -37,37 +35,34 @@ class GuidanceRetriever:
         ]
 
 
-def create_embeddings(settings: Settings) -> Any:
-    import os
+class ChromaGuidanceStore:
+    """Read-only view of the index written by `python -m app.ingest`."""
 
-    from langchain_openai import OpenAIEmbeddings
+    def __init__(self, settings: Settings) -> None:
+        from app.embeddings import COLLECTION, create_embeddings, open_client
 
-    # OpenAI-compatible proxies (e.g. LiteLLM) expect raw text, not token IDs.
-    custom_endpoint = bool(
-        os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE")
-    )
-    return OpenAIEmbeddings(
-        model=settings.embedding_model,
-        check_embedding_ctx_length=not custom_endpoint,
-    )
+        self.collection = open_client(settings).get_or_create_collection(COLLECTION)
+        self.embeddings = create_embeddings(settings)
 
+    def is_empty(self) -> bool:
+        return self.collection.count() == 0
 
-def open_vector_store(settings: Settings) -> Any:
-    from langchain_chroma import Chroma
-
-    settings.vector_store_dir.mkdir(parents=True, exist_ok=True)
-    return Chroma(
-        collection_name="guidance",
-        embedding_function=create_embeddings(settings),
-        persist_directory=str(settings.vector_store_dir),
-    )
-
-
-def rebuild_index(settings: Settings) -> int:
-    documents = load_guidance(
-        settings.guidance_dir, settings.chunk_size, settings.chunk_overlap
-    )
-    store = open_vector_store(settings)
-    store.reset_collection()
-    store.add_documents(documents)
-    return len(documents)
+    def similarity_search_with_relevance_scores(
+        self, text: str, k: int
+    ) -> list[tuple[Document, float]]:
+        if self.is_empty():
+            return []
+        result = self.collection.query(
+            query_embeddings=[self.embeddings.embed_query(text)],
+            n_results=k,
+            include=["documents", "metadatas", "distances"],
+        )
+        return [
+            # Chroma's default L2 distance on unit vectors maps to 0..1.
+            (Document(page_content=content, metadata=metadata), 1.0 - distance / 2**0.5)
+            for content, metadata, distance in zip(
+                result["documents"][0],
+                result["metadatas"][0],
+                result["distances"][0],
+            )
+        ]
