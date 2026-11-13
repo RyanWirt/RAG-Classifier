@@ -12,7 +12,7 @@ from app.manager import ClassifierManager
 from app.mcp import terminology_tool
 from app.models import ClassificationResult
 from app.providers import create_chat_model
-from app.retrieval import GuidanceRetriever, RetrievedChunk, open_vector_store
+from app.retrieval import ChromaGuidanceStore, GuidanceRetriever, RetrievedChunk
 
 STATUS_MEANING = {
     "approved": "The checker agreed with the classifier's label.",
@@ -47,7 +47,7 @@ def show(result: ClassificationResult, retrieved: list[RetrievedChunk]) -> None:
 
     print("\n[2] Retrieval (guidance chunks sent to the classifier)")
     if not retrieved:
-        print("  (nothing retrieved; has `python -m app reindex` been run?)")
+        print("  (nothing retrieved; has `python -m app.ingest` been run?)")
     for chunk in retrieved:
         section = chunk.document.metadata.get("section_id") or "-"
         score = f"{chunk.relevance_score:.2f}" if chunk.relevance_score is not None else "n/a"
@@ -75,9 +75,9 @@ def show(result: ClassificationResult, retrieved: list[RetrievedChunk]) -> None:
 
 def build() -> tuple[ClassifierManager, TracingRetriever]:
     settings = Settings.from_env()
-    vector_store = open_vector_store(settings)
-    if not vector_store.get(limit=1)["ids"]:
-        print("Warning: the vector store is empty. Run `python -m app reindex` first.")
+    vector_store = ChromaGuidanceStore(settings)
+    if vector_store.is_empty():
+        print("Warning: the vector store is empty. Run `python -m app.ingest` first.")
     retriever = TracingRetriever(vector_store, settings.retrieval_k)
     model = create_chat_model(settings)
     manager = ClassifierManager(
