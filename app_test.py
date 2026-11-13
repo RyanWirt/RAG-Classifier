@@ -76,7 +76,7 @@ def show(result: ClassificationResult, retrieved: list[RetrievedChunk]) -> None:
 def build() -> tuple[ClassifierManager, TracingRetriever]:
     settings = Settings.from_env()
     vector_store = open_vector_store(settings)
-    if not vector_store.get(limit=1)["ids"]:
+    if not vector_store.store:
         print("Warning: the vector store is empty. Run `python -m app reindex` first.")
     retriever = TracingRetriever(vector_store, settings.retrieval_k)
     model = create_chat_model(settings)

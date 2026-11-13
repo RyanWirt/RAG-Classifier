@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.documents import Document
+from langchain_core.vectorstores import InMemoryVectorStore
 
 from app.config import Settings
 from app.guidance import load_guidance
@@ -52,22 +53,24 @@ def create_embeddings(settings: Settings) -> Any:
     )
 
 
-def open_vector_store(settings: Settings) -> Any:
-    from langchain_chroma import Chroma
+def _index_path(settings: Settings) -> Path:
+    return settings.vector_store_dir / "guidance.json"
 
-    settings.vector_store_dir.mkdir(parents=True, exist_ok=True)
-    return Chroma(
-        collection_name="guidance",
-        embedding_function=create_embeddings(settings),
-        persist_directory=str(settings.vector_store_dir),
-    )
+
+def open_vector_store(settings: Settings) -> InMemoryVectorStore:
+    embeddings = create_embeddings(settings)
+    path = _index_path(settings)
+    if path.exists():
+        return InMemoryVectorStore.load(str(path), embeddings)
+    return InMemoryVectorStore(embeddings)
 
 
 def rebuild_index(settings: Settings) -> int:
     documents = load_guidance(
         settings.guidance_dir, settings.chunk_size, settings.chunk_overlap
     )
-    store = open_vector_store(settings)
-    store.reset_collection()
+    store = InMemoryVectorStore(create_embeddings(settings))
     store.add_documents(documents)
+    settings.vector_store_dir.mkdir(parents=True, exist_ok=True)
+    store.dump(str(_index_path(settings)))
     return len(documents)

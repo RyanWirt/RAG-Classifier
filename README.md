@@ -17,7 +17,7 @@ app/
   mcp_server.py    Local terminology MCP server (stdio)
   models.py        Pydantic request/response schemas
   pdf_to_text.py   Offline PDF-to-.txt converter (OCR, header/footer removal)
-  retrieval.py     Chroma persistence and retrieval
+  retrieval.py     JSON vector index persistence and retrieval
   cli.py           Reindex and classify commands
 guidance/
   classifications.txt
@@ -59,7 +59,7 @@ the proxy serves.
 Set `LLM_PROVIDER=openai` or `LLM_PROVIDER=anthropic` and choose a compatible
 `CHAT_MODEL`. Use any `.txt` files in `GUIDANCE_DIR`; headings are detected from
 Markdown headings, numbered headings, and short all-caps headings. Set chunking,
-retrieval, model, and vector-store parameters in `.env`. The Chroma index is
+retrieval, model, and vector-store parameters in `.env`. The vector index is
 stored locally in `VECTOR_STORE_DIR` (default `.vector_store/`, git-ignored).
 `reindex` re-embeds every `.txt` file in `GUIDANCE_DIR` and replaces the whole
 index, so rerun it after adding or editing guidance or changing
