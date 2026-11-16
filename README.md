@@ -1,33 +1,37 @@
 # RAG-Classifier
 
-A minimal LangChain application that classifies text against local plain-text
-guidance, cites the exact retrieved passages, and records an independent checker
-and optional MCP tool results in its JSON audit trail.
+A minimal LangChain application that classifies text against guidance PDFs,
+cites the exact retrieved passages, and records an independent checker and
+optional MCP tool results in its JSON audit trail.
+
+The project has two independent parts that meet at a Chroma database:
+
+1. **Ingestion** (`app/ingest.py`): reads the guidance PDFs, cleans and chunks
+   the text, embeds the chunks, and writes them to Chroma.
+2. **Classification** (everything else): embeds the input text, retrieves the
+   closest chunks from Chroma, and classifies, checks, and reconciles.
 
 ## Project structure
 
 ```text
 app/
-  checker.py       Independent guidance-grounded checker
-  classifier.py    Retrieval-first structured classifier
+  ingest.py        Part 1: PDFs -> text -> chunks -> embeddings -> Chroma
+  embeddings.py    Embedding model, Chroma client, and collection name (shared)
+  retrieval.py     Part 2: read-only Chroma retrieval
+  classifier.py    Part 2: retrieval-first structured classifier
+  checker.py       Part 2: independent guidance-grounded checker
+  manager.py       Part 2: bounded classify/check/reconcile workflow and MCP calls
+  cli.py           Part 2: `classify` command
   config.py        Environment-backed settings
-  guidance.py      Text loading, section detection, and chunking
-  manager.py       Bounded classify/check/reconcile workflow and MCP calls
+  providers.py     Chat model factory (OpenAI or Anthropic)
   mcp.py           MCP tool protocol and stdio client adapter
   mcp_server.py    Local terminology MCP server (stdio)
   models.py        Pydantic request/response schemas
-  pdf_to_text.py   Offline PDF-to-.txt converter (OCR, header/footer removal)
-  embeddings.py    Embedding model and Chroma client setup
-  ingest.py        Vectorizer: guidance text -> Chroma (run separately)
-  retrieval.py     Read-only Chroma retrieval for the classifier
-  cli.py           Reindex and classify commands
-guidance/
-  classifications.txt
-  account_and_requests.txt
+guidance/          Source PDFs (and .txt files) read by ingestion
 certs/
   nnl-ca.pem      Private CA trusted for the hosted LiteLLM proxy
 tests/
-  test_guidance.py
+  test_ingest.py
   test_workflow.py
 ```
 
@@ -59,17 +63,19 @@ in `.env`, and `SSL_CERT_FILE` if the proxy uses a private CA (for example
 the proxy serves.
 
 Set `LLM_PROVIDER=openai` or `LLM_PROVIDER=anthropic` and choose a compatible
-`CHAT_MODEL`. Use any `.txt` files in `GUIDANCE_DIR`; headings are detected from
-Markdown headings, numbered headings, and short all-caps headings. Set chunking,
-retrieval, model, and vector-store parameters in `.env`. The vector index is
-stored locally in `VECTOR_STORE_DIR` (default `.vector_store/`, git-ignored).
-`app.ingest` re-embeds every `.txt` file in `GUIDANCE_DIR` and replaces the whole
-index, so rerun it after adding or editing guidance or changing
-`EMBEDDING_MODEL`:
+`CHAT_MODEL`. Set chunking, retrieval, model, and vector-store parameters in
+`.env`. The vector index is stored locally in `VECTOR_STORE_DIR` (default
+`.vector_store/`, git-ignored).
+
+## Usage
+
+Put guidance PDFs in `GUIDANCE_DIR` (default `guidance/`), then run the two
+parts separately:
 
 ```bash
-python -m app.ingest
-python -m app classify --text "I was charged twice for my order."
+pip install -r requirements-ingest.txt   # PDF reading and OCR, ingestion only
+python -m app.ingest                     # part 1: build the Chroma index
+python -m app classify --text "I was charged twice for my order."  # part 2
 ```
 
 The CLI prints a JSON `ClassificationResult`. Example output:
@@ -124,30 +130,31 @@ Run the unit tests with:
 python -m unittest discover -s tests
 ```
 
-## Converting PDFs to guidance
+## Ingestion (`app/ingest.py`)
 
-The indexer reads only `.txt` files. `app/pdf_to_text.py` converts PDFs to plain
-text, OCRs pages that have no text layer, and removes running headers, footers,
-and page numbers. Its dependencies are separate from the classifier's:
+`python -m app.ingest` rebuilds the whole index from every `.pdf` (and `.txt`)
+file in `GUIDANCE_DIR`, so rerun it after adding or editing guidance or changing
+`EMBEDDING_MODEL`. For each file it:
 
-```bash
-pip install -r requirements-ingest.txt
-python -m app.pdf_to_text path/to/file.pdf path/to/folder -o guidance
-python -m app.ingest
-```
+1. Extracts text with `pypdfium2`, OCRs pages that have no text layer
+   (RapidOCR, bundled models), and removes running headers, footers, and page
+   numbers.
+2. Splits the text into sections and chunks (`CHUNK_SIZE`, `CHUNK_OVERLAP`).
+3. Embeds the chunks and replaces the Chroma collection.
 
+- Sections come from Markdown headings, numbered headings, and short all-caps
+  headings. In a two-column PDF (paragraph on the left, label on the right) a
+  label such as `## Feature Request` at the end of the paragraph's first line,
+  separated by 2+ spaces or a tab, starts a new section holding that paragraph.
 - A line is treated as a header or footer when it sits in the top or bottom 3
   lines of a page (`--edge-lines`) and, ignoring digits, repeats on at least 40%
   of pages (`--min-fraction`). Documents under 3 pages are left untouched. The
-  removed patterns are printed so you can review them.
+  removed patterns are logged.
 - `--ocr auto` (default) OCRs only pages with almost no extractable text;
   `--ocr always` forces OCR for every page; `--ocr never` disables it.
-- Existing `.txt` files are not overwritten unless you pass `--force`.
-- OCR uses RapidOCR with bundled models, so no system packages or downloads are
-  needed. PDF reading uses `pypdfium2`.
-- Output keeps the original line breaks, so all-caps or numbered headings in the
-  PDF still become sections during indexing. Check the converted text before
-  indexing, since OCR accuracy depends on scan quality.
+- `--dry-run` prints the chunks and their sections without calling the
+  embedding model or writing to Chroma. Use it to check extraction and OCR
+  quality before indexing.
 
 ## Design and extension
 
@@ -188,7 +195,7 @@ python -m app.ingest
   ```
 
   Keep the adapter's server timeout within `TOOL_TIMEOUT_SECONDS`.
-- The sample labels live in the `.txt` files under `guidance/`; the application
+- The sample labels live in the files under `guidance/`; the application
   does not maintain a separate hard-coded taxonomy. Select an LLM integration
   using `LLM_PROVIDER` (`openai` or `anthropic`); either provider can use
   structured output through LangChain.

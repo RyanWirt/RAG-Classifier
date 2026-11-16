@@ -15,7 +15,7 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 
 from app.config import Settings
-from app.retrieval import create_embeddings
+from app.embeddings import create_embeddings
 
 SAMPLES = [
     "My card was billed again after I cancelled.",
