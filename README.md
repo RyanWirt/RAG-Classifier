@@ -61,7 +61,7 @@ the proxy serves.
 Set `LLM_PROVIDER=openai` or `LLM_PROVIDER=anthropic` and choose a compatible
 `CHAT_MODEL`. Use any `.txt` files in `GUIDANCE_DIR`; headings are detected from
 Markdown headings, numbered headings, and short all-caps headings. Set chunking,
-retrieval, model, and vector-store parameters in `.env`. The Chroma index is
+retrieval, model, and vector-store parameters in `.env`. The vector index is
 stored locally in `VECTOR_STORE_DIR` (default `.vector_store/`, git-ignored).
 `app.ingest` re-embeds every `.txt` file in `GUIDANCE_DIR` and replaces the whole
 index, so rerun it after adding or editing guidance or changing

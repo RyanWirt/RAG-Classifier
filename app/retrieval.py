@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from langchain_core.documents import Document
+from langchain_core.vectorstores import InMemoryVectorStore
 
 from app.config import Settings
 

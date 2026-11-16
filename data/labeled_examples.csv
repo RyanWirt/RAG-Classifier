@@ -1,0 +1,51 @@
+text,label
+I was charged twice for my order.,Billing
+My invoice shows an amount I never agreed to pay.,Billing
+Please refund the duplicate payment on my card.,Billing
+The subscription fee went up without notice.,Billing
+I still have not received my refund from last month.,Billing
+There is an unknown charge on my credit card statement.,Billing
+My payment was declined but the money left my account.,Billing
+Can you correct the tax amount on my latest invoice?,Billing
+I was billed for a plan I already cancelled.,Billing
+The receipt total does not match what I paid.,Billing
+The export button crashes the app every time I click it.,Service Issue
+Search returns no results even for items I know exist.,Service Issue
+The dashboard has been stuck on a loading spinner all morning.,Service Issue
+Uploads keep failing with a timeout error.,Service Issue
+Notifications stopped arriving after the last update.,Service Issue
+The mobile app freezes when I open the settings page.,Service Issue
+Reports show wrong totals compared to the raw data.,Service Issue
+The checkout page does not load at all.,Service Issue
+Sync between my devices has stopped working.,Service Issue
+Video playback keeps stuttering and cutting out.,Service Issue
+What are your support hours?,General Inquiry
+Do you offer a student discount?,General Inquiry
+How do I find the user guide for the API?,General Inquiry
+Which countries do you ship to?,General Inquiry
+Is there a mobile version of the product?,General Inquiry
+Where can I read your privacy policy?,General Inquiry
+Can you tell me more about the enterprise plan?,General Inquiry
+How long does onboarding usually take?,General Inquiry
+Do you have a status page I can follow?,General Inquiry
+What file formats can the importer read?,General Inquiry
+I cannot reset my password.,Account Access
+My account is locked after too many login attempts.,Account Access
+I never received the multi-factor authentication code.,Account Access
+I need access to the shared team workspace.,Account Access
+My login says my account has been suspended.,Account Access
+The password reset email never arrives.,Account Access
+I lost my phone and cannot sign in with two-factor.,Account Access
+Please restore my admin permissions.,Account Access
+I forgot which email I used to register.,Account Access
+Single sign-on keeps sending me back to the login page.,Account Access
+It would be great if the app supported dark mode.,Feature Request
+Please add an option to export reports as PDF.,Feature Request
+Could you add bulk editing for tickets?,Feature Request
+I would like to schedule reports to send automatically.,Feature Request
+A keyboard shortcut for search would speed things up.,Feature Request
+Please consider adding a calendar integration.,Feature Request
+It would help to filter the dashboard by date range.,Feature Request
+Can you add support for custom labels?,Feature Request
+I suggest letting users reorder the sidebar items.,Feature Request
+Adding an undo button would be a great improvement.,Feature Request
