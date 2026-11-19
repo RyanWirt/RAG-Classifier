@@ -13,8 +13,3 @@ use an account or its features.
 
 Choose Feature Request when the text suggests a new capability or an
 improvement to existing behavior and does not report that something is broken.
-
-
-
-Choose Feature Request when the text suggests a new capability or an                    ## Feature Request
-improvement to existing behavior and does not report that something is broken.

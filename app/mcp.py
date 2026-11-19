@@ -4,12 +4,38 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+MAX_EVIDENCE_ITEMS = 20
+MAX_EVIDENCE_CHARS = 500
+
+
+class InvalidToolResult(Exception):
+    pass
+
+
+def sanitize_result(result: Any) -> tuple[dict[str, str], bool]:
+    """Keep only bounded str-to-str entries; tool output is untrusted prompt input."""
+    if not isinstance(result, dict):
+        raise InvalidToolResult
+    cleaned: dict[str, str] = {}
+    truncated = False
+    for key, value in result.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            truncated = True
+            continue
+        if len(cleaned) == MAX_EVIDENCE_ITEMS:
+            truncated = True
+            break
+        if len(key) > MAX_EVIDENCE_CHARS or len(value) > MAX_EVIDENCE_CHARS:
+            truncated = True
+        cleaned[key[:MAX_EVIDENCE_CHARS]] = value[:MAX_EVIDENCE_CHARS]
+    return cleaned, truncated
 
 
 class MCPTool(Protocol):

@@ -3,3 +3,5 @@
 .vector_store/
 __pycache__/
 *.py[cod]
+.pytest_cache/
+certs/

@@ -3,7 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-  "postCreateCommand": "python -m venv .venv && .venv/bin/pip install -r requirements.txt && ([ -f .env ] || cp .devcontainer/.env.litellm .env)",
+  "postCreateCommand": "python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-ingest.txt && ([ -f .env ] || cp .devcontainer/.env.litellm .env)",
   "customizations": {
     "vscode": {
       "settings": {
